@@ -1,4 +1,4 @@
-from Person import Person
+from Agents.Person import Person
 
 class Citizen(Person):
     def __init__(self, name, personality, publicRecord):
