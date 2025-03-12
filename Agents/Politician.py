@@ -1,5 +1,5 @@
 from Agents.Person import Person
-import ollama
+from model import request_ollama
 from duckduckgo_search import DDGS
 import json
 import requests
@@ -10,8 +10,8 @@ from datetime import datetime
 import re
 
 class Politician (Person):
-    def __init__(self, name, personality, party):
-        super().__init__(name, personality)
+    def __init__(self, name, personality, party, publicRecord):
+        super().__init__(name, personality, publicRecord)
         self.party = party
     
     def getPublicRecords(self, citizens):
@@ -47,9 +47,9 @@ class Politician (Person):
         results = {}
         for i in range(5):
             try:
-                response = ollama.chat(model='llama3.1', messages=[{"role": "user", "content": prompt}])
+                response = request_ollama(prompt)
                 # print(response["message"]['content'])
-                queries = eval(response['message']['content'])  # Convert response into a Python list
+                queries = eval(response)  # Convert response into a Python list
                 results = self.searchCurrectAffairs(queries, 3)
                 break
             except Exception as e:
@@ -66,8 +66,8 @@ class Politician (Person):
         DO NOT include any other unwanted text like: 'Here is the summary ...'.
         """
 
-        response = ollama.chat(model='llama3.1', messages=[{"role": "user", "content": prompt}])
-        return response['message']['content']  # Return the summary
+        response = request_ollama(prompt)
+        return response  # Return the summary
 
     def scrape(self, currentAffairs):
 
@@ -156,7 +156,7 @@ class Politician (Person):
         posts=[]
         for i in range(5):
             try:
-                response = ollama.chat(model='llama3.1', messages=[{"role": "user", "content": prompt}])['message']['content']
+                response = request_ollama(model='llama3.1', messages=[{"role": "user", "content": prompt}])
                 json_pattern = re.compile(r'\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}', re.DOTALL)
                 json_match = json_pattern.search(response)
                 if json_match:

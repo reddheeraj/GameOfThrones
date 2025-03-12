@@ -27,3 +27,8 @@ class Vectorstore:
         # logger.info("Loading embedding model...")
         embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
         return embeddings
+    
+    def queryStore(self, query, k):
+        vector = self.get_embeddings().embed_query(query)
+        result = self.search_vectorstore(vector, 2)
+        return result
