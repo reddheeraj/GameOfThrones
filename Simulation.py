@@ -3,6 +3,14 @@ from config import PROJECT_DIR
 import os
 from Agents.Citizen import Citizen
 from Agents.Politician import Politician
+from Database.VectorStore import Vectorstore
+
+def queryStore(vectorStore):
+    query = input("Enter query: ")
+    vector = vectorStore.get_embeddings().embed_query(query)
+    result = vectorStore.search_vectorstore(vector, 2)
+    print(result)
+
 def simulate():
     citizen_path = os.path.join(PROJECT_DIR, "Personalities", "Citizens")
     politician_path = os.path.join(PROJECT_DIR, "Personalities", "Politicians")
@@ -19,7 +27,9 @@ def simulate():
             file = json.load(f)
             politician = Politician(file["Name"], file["Personality"], file["Party"])
             politicians.append(politician)
-    print(citizens)
-    politicians[0].createPost(citizens)
+    vectorStore = Vectorstore('Test')
+    for politician in politicians:
+        politician.createPost(citizens, vectorStore, 5)
+    queryStore(vectorStore)
 
 simulate()

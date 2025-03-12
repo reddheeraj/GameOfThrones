@@ -1,2 +1,6 @@
 __pycache__
 currentAffairs.json
+Test.*
+Test/
+post*
+logs/*

@@ -1,6 +1,9 @@
-from ChromaDBConnection import ChromaDBConnection
+from Database.ChromaDBConnection import ChromaDBConnection
 from logger import logger
 from config import CONNECTION_NAME
+from langchain_ollama import OllamaEmbeddings
+LLM_MODEL = 'llama3.2'
+EMBEDDING_MODEL = 'nomic-embed-text'
 
 class Vectorstore:
     def __init__(self, path):
@@ -19,3 +22,8 @@ class Vectorstore:
     def delete_from_vectorstore(self, metadata):
         self.collection.delete(metadata)
         logger.info(f"Deleted vector from collection: {metadata}")
+
+    def get_embeddings(self):
+        # logger.info("Loading embedding model...")
+        embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+        return embeddings

@@ -4,6 +4,10 @@ from duckduckgo_search import DDGS
 import json
 import requests
 from bs4 import BeautifulSoup
+from Database.SocialMedia import SocialMedia
+from Database.ChromaDBConnection import ChromaDBConnection
+from datetime import datetime
+import re
 
 class Politician (Person):
     def __init__(self, name, personality, party):
@@ -94,7 +98,7 @@ class Politician (Person):
         
         return scraped_affairs
 
-    def createPost(self, citizens):
+    def createPost(self, citizens, vectorStore, num = 1):
         '''
         Call the getPublicRecords method to get the public records of all citizens and create a post.
         '''
@@ -103,8 +107,8 @@ class Politician (Person):
         # json.dump(currentAffairs, open("currentAffairs.json", "w"), indent=4)
         summarized_affairs = self.scrape(currentAffairs)
         # print(summarized_affairs)
-        with open("summarizedAffairs.json", "w") as f:
-            json.dump(summarized_affairs, f, indent=4)
+        # with open("summarizedAffairs.json", "w") as f:
+        #     json.dump(summarized_affairs, f, indent=4)
         
         summarized_affairs_str = ""
 
@@ -121,6 +125,7 @@ class Politician (Person):
             publicRecords_str = f'Citizen {i}: ' + record + '\n'
         
         personality = self.personality
+        print('-'*50)
         prompt = f"""
         {personality}
 
@@ -132,14 +137,47 @@ class Politician (Person):
         
         {summarized_affairs_str}
 
-        Create a social media post which showcases polcies or idealogies 
-        that you wish to implement if you win the elections.
+        Create exactly {num} unique social media post which showcases polcies or idealogies 
+        that you wish to implement if you win the elections. The posts should have a minimum of 50 words.
         You are goal is to attract all citizens to vote for you.
-        Return a string in structured format to display the post.
+        Return a SINGLE json object with keys as numbers: 1,2,3...
+
+        ### Example of a correct response:
+        {{
+            1: String1,
+            2: String2,
+            .
+            .
+            .
+        }}
+
         DO NOT return any other unwanted text like: 'Here is the post ...' or 'This social media post showcases...' or 'Feel free to modify or expand on this post...'.
         """
-
-        response = ollama.chat(model='llama3.1', messages=[{"role": "user", "content": prompt}])
-        print(response['message']['content'])
-        with open("post.txt", "w") as f:
-            f.write(response['message']['content'])
+        posts=[]
+        for i in range(5):
+            try:
+                response = ollama.chat(model='llama3.1', messages=[{"role": "user", "content": prompt}])['message']['content']
+                json_pattern = re.compile(r'\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}', re.DOTALL)
+                json_match = json_pattern.search(response)
+                if json_match:
+                    json_str = json_match.group(0).strip()
+                    posts = json.loads(json_str)
+                    break
+                else:
+                    print(response)
+            except Exception as e:
+                print(e)
+                print(response)
+        print('+'*50)
+        with open(f"posts{self.name}.json", "w") as f:
+            json.dump(posts, f, indent=4)
+        vector_posts = []
+        post_str=[]
+        embeddings = vectorStore.get_embeddings()
+        for key in posts.keys():
+            vector_posts.append(embeddings.embed_query(posts[key]))
+            post_str.append(posts[key])
+        dt = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+        ids = [dt + "_" + str(i) for i in range(len(vector_posts))]
+        metadata = [{"name": self.name, "date_time": dt}] * len(vector_posts)
+        vectorStore.add_to_vectorstore(ids = ids, vector = vector_posts, metadata = metadata, documents = post_str)
