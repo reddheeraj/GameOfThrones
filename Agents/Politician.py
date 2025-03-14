@@ -8,6 +8,8 @@ from Database.SocialMedia import SocialMedia
 from Database.ChromaDBConnection import ChromaDBConnection
 from datetime import datetime
 import re
+import os
+from string import Template
 
 class Politician (Person):
     def __init__(self, name, personality, party, publicRecord):
@@ -34,21 +36,16 @@ class Politician (Person):
         publicRecords_str = ""
         for i, record in enumerate(publicRecords):
             publicRecords_str = f'Citizen {i}: ' + record + '\n'
-        prompt = f"""
-        Given the following public records of citizens, give me a single list of {len(publicRecords)} distinct and extensive search queries which
-        can be used to search for major recent news related to their occupations and interests.:
+        prompt_path = os.path.join(os.getcwd(),'Prompts','web_prompt.txt')
+        with open(prompt_path, 'r') as f:
+            prompt_template = f.read()
         
-        {publicRecords_str}
-        
-        The queries should be specific and focus on major news related to their occupations and interests.
-        DO NOT include any other unwanted text like: ' Here are five search queries ...'.
-        STRICT OUTPUT FORMAT: [query1, query2, query3, query4, query5]
-        """
+        template = Template(prompt_template)
+        prompt = template.substitute(len_publicRecords=len(publicRecords), publicRecords_str=publicRecords_str)
         results = {}
         for i in range(5):
             try:
                 response = request_ollama(prompt)
-                # print(response["message"]['content'])
                 queries = eval(response)  # Convert response into a Python list
                 results = self.searchCurrectAffairs(queries, 3)
                 break
@@ -58,14 +55,12 @@ class Politician (Person):
         return results
 
     def summarize(self, text):
-        prompt = f"""
-        Given the following text, summarize it into a single paragraph:
-
-        {text}
-
-        DO NOT include any other unwanted text like: 'Here is the summary ...'.
-        """
-
+        prompt_path = os.path.join(os.getcwd(),'Prompts','summary_prompt.txt')
+        with open(prompt_path, 'r') as f:
+            prompt_template = f.read()
+        
+        template = Template(prompt_template)
+        prompt = template.substitute(text=text)
         response = request_ollama(prompt)
         return response  # Return the summary
 
@@ -126,37 +121,17 @@ class Politician (Person):
         
         personality = self.personality
         print('-'*50)
-        prompt = f"""
-        {personality}
-
-        These are the citizens who will vote for you in the upcoming elections.
-
-        {publicRecords_str}
-
-        These are summarized latest news articles related to the citizens:
+        prompt_path = os.path.join(os.getcwd(),'Prompts','post_prompt.txt')
+        with open(prompt_path, 'r') as f:
+            prompt_template = f.read()
         
-        {summarized_affairs_str}
-
-        Create exactly {num} unique social media post which showcases polcies or idealogies 
-        that you wish to implement if you win the elections. The posts should have a minimum of 50 words.
-        You are goal is to attract all citizens to vote for you.
-        Return a SINGLE json object with keys as numbers: 1,2,3...
-
-        ### Example of a correct response:
-        {{
-            1: String1,
-            2: String2,
-            .
-            .
-            .
-        }}
-
-        DO NOT return any other unwanted text like: 'Here is the post ...' or 'This social media post showcases...' or 'Feel free to modify or expand on this post...'.
-        """
+        template = Template(prompt_template)
+        prompt = template.substitute(personality=personality, publicRecords_str=publicRecords_str, summarized_affairs_str=summarized_affairs_str, num=num)
         posts=[]
+        response = ""
         for i in range(5):
             try:
-                response = request_ollama(model='llama3.1', messages=[{"role": "user", "content": prompt}])
+                response = request_ollama(prompt)
                 json_pattern = re.compile(r'\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}', re.DOTALL)
                 json_match = json_pattern.search(response)
                 if json_match:

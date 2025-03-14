@@ -1,6 +1,8 @@
 from Agents.Person import Person
 from model import request_ollama
 from Database.VectorStore import Vectorstore
+import os
+from string import Template
 
 class Citizen(Person):
     def __init__(self, name, personality, publicRecord):
@@ -15,17 +17,12 @@ class Citizen(Person):
     def searchPost(self, vectorStore, politicians, k):
         publicRecords = self.getPublicRecords(politicians)
         personality = self.personality
-        prompt = f"""
-        You are a citizen of a constituency.
-        {personality}
-        Given the following public records of politicians:
-
-        {publicRecords}
-
-        Politicians have shared posts on social media. Generate a very simple search query with 3 words that will help you find the most relevant post based on your interests or idealogies.
-        Return a single string.
-        DO NOT include any other unwanted text like: 'Here is the search query ...'.
-        """
+        prompt_path = os.path.join(os.getcwd(),'Prompts','searchPost_prompt.txt')
+        with open(prompt_path, 'r') as f:
+            prompt_template = f.read()
+        
+        template = Template(prompt_template)
+        prompt = template.substitute(personality=personality, publicRecords=publicRecords)
         
         response = request_ollama(prompt)
         print(f"Response: {response}")

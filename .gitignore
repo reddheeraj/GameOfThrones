@@ -2,5 +2,5 @@ __pycache__
 currentAffairs.json
 Test.*
 Test/
-post*
+posts*
 logs/*

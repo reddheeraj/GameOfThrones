@@ -1,0 +1,10 @@
+
+        Given the following public records of citizens, give me a single list of ${len_publicRecords} distinct and extensive search queries which
+        can be used to search for major recent news related to their occupations and interests.:
+
+        ${publicRecords_str}
+
+        The queries should be specific and focus on major news related to their occupations and interests.
+        DO NOT include any other unwanted text like: ' Here are five search queries ...'.
+        STRICT OUTPUT FORMAT: [query1, query2, query3, query4, query5]
+        

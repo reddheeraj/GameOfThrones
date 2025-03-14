@@ -1,0 +1,27 @@
+
+        ${personality}
+
+        These are the citizens who will vote for you in the upcoming elections.
+
+        ${publicRecords_str}
+
+        These are summarized latest news articles related to the citizens:
+
+        ${summarized_affairs_str}
+
+        Create exactly ${num} unique social media post which showcases polcies or idealogies 
+        that you wish to implement if you win the elections. The posts should have a minimum of 100 words.
+        You are goal is to attract all citizens to vote for you.
+        Return a SINGLE json object with keys as numbers: 1,2,3...
+
+        ### Example of a correct response:
+        {{
+            1: String1,
+            2: String2,
+            .
+            .
+            .
+        }}
+
+        DO NOT return any other unwanted text like: 'Here is the post ...' or 'This social media post showcases...' or 'Feel free to modify or expand on this post...'.
+        

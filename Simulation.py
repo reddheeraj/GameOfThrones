@@ -34,8 +34,8 @@ def simulate():
     politicians = load_politicians(politician_path)
     
     vectorStore = Vectorstore('Test')
-    # for politician in politicians:
-    #     politician.createPost(citizens, vectorStore, 5)
+    for politician in politicians:
+        politician.createPost(citizens, vectorStore, 5)
     
 
     citizens[0].searchPost(vectorStore, politicians, 5)
