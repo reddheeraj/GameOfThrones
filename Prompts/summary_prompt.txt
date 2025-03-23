@@ -1,0 +1,7 @@
+
+        Given the following text, summarize it into a single paragraph:
+
+        ${text}
+
+        DO NOT include any other unwanted text like: 'Here is the summary ...'.
+        
