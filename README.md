@@ -1,4 +1,6 @@
 # 🎯 **InstaPolitics**  
+![image](https://github.com/user-attachments/assets/7690149f-53ff-40f2-b0c5-12d6d06ee8e4)
+
 
 ## 🚀 **Inspiration**  
 Social media is reshaping modern politics, and InstaPolitics was born to explore that connection! The idea was to create a hands-on simulation where students, especially those in business, education, and political science, can study how politicians sway voters through social media. With InstaPolitics, you can see how political figures craft messages, influence public opinion, and ultimately shape election outcomes in real-time.
@@ -12,8 +14,9 @@ InstaPolitics is a full-stack web app that simulates the complex dynamics of pol
 - 👥 **Citizen Agents**: Voters react to posts based on their personalities and biases.  
 - 🎯 **Influence and Decision-Making**: Watch how posts influence voters and drive decisions at the ballot box.  
 - 📊 **Real-Time Simulation**: See political strategies unfold and voter behavior evolve in real-time.  
+- ✨ **Goal**: To understand how social media shapes modern political influence through direct interaction and dynamic feedback.  
 
-✨ **Goal**: To understand how social media shapes modern political influence through direct interaction and dynamic feedback.  
+![image](https://github.com/user-attachments/assets/597bf0ba-fd3b-4d33-8fd6-e04f89f06305)
 
 ---
 
