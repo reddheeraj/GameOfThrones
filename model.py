@@ -1,6 +1,12 @@
-import ollama
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from config import MODEL
 
+def get_llm():
+    print("Initializing LLM...")
+    llm = ChatOllama(model=MODEL)
+    return llm
+
 def request_ollama(prompt):
-    response = ollama.chat(model=MODEL, messages=[{"role": "user", "content": prompt}])
-    return response['message']['content']
+    llm = get_llm()
+    res = llm.invoke(prompt)
+    return res.content

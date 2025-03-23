@@ -5,7 +5,7 @@ from langchain_ollama import OllamaEmbeddings
 LLM_MODEL = 'llama3.2'
 EMBEDDING_MODEL = 'nomic-embed-text'
 
-class Vectorstore:
+class VectorStore:
     def __init__(self, path):
         self.client = ChromaDBConnection(path)
         self.collection = self.client.get_collection(CONNECTION_NAME)
@@ -32,3 +32,14 @@ class Vectorstore:
         vector = self.get_embeddings().embed_query(query)
         result = self.search_vectorstore(vector, 2)
         return result
+    
+    def get_all_documents(self):
+        try:
+            results = self.collection.get()
+            documents = results.get('documents', [])
+            metadata = results.get('metadatas', [])
+            logger.info(f"Retrieved {len(documents)} documents from the vector store.")
+            return list(zip(documents, metadata))
+        except Exception as e:
+            logger.error(f"Failed to retrieve documents: {e}")
+            return []

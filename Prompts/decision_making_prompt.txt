@@ -1,0 +1,8 @@
+Citizen Personality: ${personality}
+Public Record: ${publicRecord}
+
+Based on the following posts, decide which politician aligns most closely with the citizen's personality and values:
+
+${posts}
+
+Respond with the exact name of the politician or "No Vote" if none are suitable.

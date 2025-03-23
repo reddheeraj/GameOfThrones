@@ -1,158 +1,207 @@
-from Agents.Person import Person
-from model import request_ollama
-from duckduckgo_search import DDGS
 import json
+from logger import logger
+import os
+import re
+from datetime import datetime
+from string import Template
+from typing import List, Dict, Any
+
 import requests
 from bs4 import BeautifulSoup
-from Database.SocialMedia import SocialMedia
-from Database.ChromaDBConnection import ChromaDBConnection
-from datetime import datetime
-import re
-import os
-from string import Template
+# from duckduckgo_search import DDGS
+from googlesearch import search
 
-class Politician (Person):
-    def __init__(self, name, personality, party, publicRecord):
-        super().__init__(name, personality, publicRecord)
+from Agents.Person import Person
+from model import request_ollama
+from Database.VectorStore import VectorStore
+
+
+class Politician(Person):
+    def __init__(self, name: str, personality: str, party: str, public_record: str):
+        super().__init__(name, personality, public_record)
         self.party = party
     
-    def getPublicRecords(self, citizens):
-        publicRecords = []
-        for citizen in citizens:
-            publicRecords.append(citizen.getPublicData())
-        return publicRecords
+    def getPublicRecords(self, citizens: List[Person]) -> List[str]:
+        """
+        Extract public records from citizens.
+        """
+        logger.info("Extracting public records from citizens...")
+        return [citizen.getPublicData() for citizen in citizens]
     
-    def searchCurrectAffairs(self, queries, num_results=5):
-        ddgs = DDGS()
+    def searchCurrectAffairs(self, queries: List[str], num_results: int = 5) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Search current news using DuckDuckGo.
+        """
+        logger.info(f"Searching current affairs for {queries}")
+
         news_results = {}
         
         for query in queries:
-            search_results = list(ddgs.news("Latest News "+query, max_results=num_results))
-            # news_results[query] = [result["body"] for result in search_results]
-            news_results[query] = search_results
+            try:
+                search_results = search(f"Latest News {query}", num_results=num_results)
+                news_results[query] = search_results
+            except Exception as e:
+                logger.error(f"Failed to fetch news for query '{query}': {e}")
+        
         return news_results
 
-    def getCurrentAffairs(self,publicRecords):
-        publicRecords_str = ""
-        for i, record in enumerate(publicRecords):
-            publicRecords_str = f'Citizen {i}: ' + record + '\n'
-        prompt_path = os.path.join(os.getcwd(),'Prompts','web_prompt.txt')
-        with open(prompt_path, 'r') as f:
-            prompt_template = f.read()
-        
-        template = Template(prompt_template)
-        prompt = template.substitute(len_publicRecords=len(publicRecords), publicRecords_str=publicRecords_str)
-        results = {}
-        for i in range(5):
-            try:
-                response = request_ollama(prompt)
-                queries = eval(response)  # Convert response into a Python list
-                results = self.searchCurrectAffairs(queries, 3)
-                break
-            except Exception as e:
-                print(e)
-                print(response["message"]['content'])
-        return results
+    def getCurrentAffairs(self, publicRecords: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Generate search queries based on public records and search for related news.
+        """
+        logger.info("Generating search queries based on public records...")
+        publicRecords_str = "\n".join([f"Citizen {i}: {record}" for i, record in enumerate(publicRecords)])
 
-    def summarize(self, text):
-        prompt_path = os.path.join(os.getcwd(),'Prompts','summary_prompt.txt')
-        with open(prompt_path, 'r') as f:
-            prompt_template = f.read()
-        
-        template = Template(prompt_template)
-        prompt = template.substitute(text=text)
+
+        # try:
+        prompt = self._load_prompt("web_prompt.txt").substitute(
+            len_publicRecords=len(publicRecords),
+            publicRecords_str=publicRecords_str
+        )
         response = request_ollama(prompt)
-        return response  # Return the summary
+        print("RESPONSE: ", response)
+        queries = eval(response)  # Convert string response into list
+        return self.searchCurrectAffairs(queries)
+        # except Exception as e:
+        #     logger.error(f"Failed to generate queries from public records: {e}")
+        #     return {}
 
-    def scrape(self, currentAffairs):
+    def summarize(self, text: str) -> str:
+        """
+        Summarize large text using the model.
+        """
+        try:
+            prompt = self._load_prompt("summary_prompt.txt").substitute(text=text)
+            return request_ollama(prompt)
+        except Exception as e:
+            logger.error(f"Failed to summarize text: {e}")
+            return text
 
-        def get_full_article(url):
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, "html.parser")
-                article_body = soup.find("article")
-                if not article_body:
-                    article_body = soup.find("div", class_="entry-content")
-                if article_body:
-                    return True, article_body.get_text()
+    def scrape(self, currentAffairs: Dict[str, Any]) -> Dict[str, List[str]]:
+        """
+        Scrape full articles and summarize them.
+        """
+        logger.info("Scraping full articles and summarizing...")
+
+        def scrape_url(url: str) -> str:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                            "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+            }
             
-            return False, "Full article could not be extracted."
-        
-        scraped_affairs = {}
-        for key in list(currentAffairs.keys()):
-            x_list = []
-            for article in currentAffairs[key]:
-                url = article['url']
-                status, full_article = get_full_article(url)
-                if status:
-                    x_list.append(self.summarize(full_article))
-                else:
-                    x_list.append(article['body'])
-            scraped_affairs[key] = x_list
-        
-        return scraped_affairs
+            try:
+                print(f"Fetching URL: {url}")
+                response = requests.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
 
-    def createPost(self, citizens, vectorStore, num = 1):
-        '''
+                soup = BeautifulSoup(response.text, "html.parser")
+                
+                # Find main content (for Wikipedia, it's usually inside <p> tags)
+                paragraphs = soup.find_all('p')
+                body_text = ' '.join(p.get_text(strip=True) for p in paragraphs)
+                
+                if not body_text:
+                    logger.info(f"No body content found at {url}")
+                    return "No content available."
+        
+                # Limit the length to avoid huge text output
+                # trimmed_text = body_text[:max_length] + ("..." if len(body_text) > max_length else "")
+                logger.info(f"Successfully scraped content from {url}")
+
+                return body_text
+    
+            except requests.RequestException as e:
+                logger.info(f"Request error while fetching {url}: {e}")
+            except Exception as e:
+                logger.info(f"Error processing {url}: {e}")
+            
+            return ""
+        
+        summarized_affairs = {}
+        for query, generator in currentAffairs.items():
+            summaries = []
+            articles = list(generator)
+            for article in articles:
+                url = article
+                body = scrape_url(url)
+                print("BODY: ", body[:200])
+                summary = self.summarize(body) if body else "No content available"
+                summaries.append(summary)
+            summarized_affairs[query] = summaries
+
+        return summarized_affairs
+
+    def createPost(self, citizens: List[Person], vectorStore: VectorStore, num: int = 1) -> None:
+        """
+        Create social media post based on current affairs and public records.
         Call the getPublicRecords method to get the public records of all citizens and create a post.
-        '''
+        """
+        logger.info(f"Creating post for {self.name}...")
+        
         publicRecords = self.getPublicRecords(citizens)
         currentAffairs = self.getCurrentAffairs(publicRecords)
-        # json.dump(currentAffairs, open("currentAffairs.json", "w"), indent=4)
         summarized_affairs = self.scrape(currentAffairs)
-        # print(summarized_affairs)
-        # with open("summarizedAffairs.json", "w") as f:
-        #     json.dump(summarized_affairs, f, indent=4)
         
-        summarized_affairs_str = ""
+        summarized_affairs_str = "\n".join(
+            f"{key}:\n" + "\n".join(f"Article {i + 1}: {summary}" for i, summary in enumerate(summaries))
+            for key, summaries in summarized_affairs.items()
+        )
+        
+        publicRecords_str = "\n".join([f"Citizen {i}: {record}" for i, record in enumerate(publicRecords)])
+        
+        prompt = self._load_prompt("post_prompt.txt").substitute(
+            personality=self.personality,
+            publicRecords_str=publicRecords_str,
+            summarized_affairs_str=summarized_affairs_str,
+            num=num
+        )
 
-        for key in summarized_affairs.keys():
-            if len(summarized_affairs[key]) == 0:
-                continue
-            summarized_affairs_str += f"{key}:\n"
-            for i, summary in enumerate(summarized_affairs[key]):
-                summarized_affairs_str += f"Article {i+1}: {summary}\n"
-            summarized_affairs_str += "\n"
-        
-        publicRecords_str = ""
-        for i, record in enumerate(publicRecords):
-            publicRecords_str = f'Citizen {i}: ' + record + '\n'
-        
-        personality = self.personality
-        print('-'*50)
-        prompt_path = os.path.join(os.getcwd(),'Prompts','post_prompt.txt')
-        with open(prompt_path, 'r') as f:
-            prompt_template = f.read()
-        
-        template = Template(prompt_template)
-        prompt = template.substitute(personality=personality, publicRecords_str=publicRecords_str, summarized_affairs_str=summarized_affairs_str, num=num)
-        posts=[]
-        response = ""
-        for i in range(5):
-            try:
-                response = request_ollama(prompt)
-                json_pattern = re.compile(r'\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}', re.DOTALL)
-                json_match = json_pattern.search(response)
-                if json_match:
-                    json_str = json_match.group(0).strip()
-                    posts = json.loads(json_str)
-                    break
-                else:
-                    print(response)
-            except Exception as e:
-                print(e)
-                print(response)
-        print('+'*50)
-        with open(f"posts{self.name}.json", "w") as f:
-            json.dump(posts, f, indent=4)
-        vector_posts = []
-        post_str=[]
-        embeddings = vectorStore.get_embeddings()
-        for key in posts.keys():
-            vector_posts.append(embeddings.embed_query(posts[key]))
-            post_str.append(posts[key])
+        try:
+            response = request_ollama(prompt)
+            posts = self._extract_json(response)
+
+            logger.info("POSTS:")
+            logger.info("---------------------------------------")
+            logger.info(posts)
+
+            self._save_posts(posts)
+            self._store_posts(vectorStore, posts)
+        except Exception as e:
+            logger.error(f"Failed to create post: {e}")
+    
+    def _extract_json(self, response: str) -> Dict[str, str]:
+        """
+        Extract JSON content from the model response.
+        """
+        try:
+            json_pattern = re.compile(r'\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}', re.DOTALL)
+            json_match = json_pattern.search(response)
+            if json_match:
+                json_str = json_match.group(0).strip()
+                return json.loads(json_str)
+            logger.warning("No valid JSON found in response.")
+        except Exception as e:
+            logger.error(f"Failed to extract JSON: {e}")
+        return {}
+
+    def _save_posts(self, posts: Dict[str, str]) -> None:
+        """
+        Save posts to file.
+        """
+        with open(f"posts_{self.name}.json", "w") as file:
+            json.dump(posts, file, indent=4)
+        logger.info("Saved posts to file.")
+
+    def _store_posts(self, vector_store: VectorStore, posts: Dict[str, str]) -> None:
+        """
+        Store posts into the vector database.
+        """
+        embeddings = vector_store.get_embeddings()
+        post_vectors = [embeddings.embed_query(content) for content in posts.values()]
         dt = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        ids = [dt + "_" + str(i) for i in range(len(vector_posts))]
-        metadata = [{"name": self.name, "date_time": dt}] * len(vector_posts)
-        vectorStore.add_to_vectorstore(ids = ids, vector = vector_posts, metadata = metadata, documents = post_str)
+        ids = [f"{dt}_{i}" for i in range(len(post_vectors))]
+        metadata = []
+        for content in posts.values():
+            metadata.append({"name": self.name, "date_time": dt, "content": content})
+        vector_store.add_to_vectorstore(ids=ids, vector=post_vectors, metadata=metadata, documents=list(posts.values()))
+        logger.info("Stored posts in vector database.")
