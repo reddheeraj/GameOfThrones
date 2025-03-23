@@ -9,8 +9,12 @@
 
         ${summarized_affairs_str}
 
+        These are the posts that you created previously, in the past:
+
+        ${prevPosts}
+
         Create exactly ${num} unique social media post which showcases polcies or idealogies 
-        that you wish to implement if you win the elections. The posts should have a minimum of 100 words.
+        that you wish to implement if you win the elections, based on the above information. The posts should have a minimum of 100 words.
         You are goal is to attract all citizens to vote for you.
         Return a SINGLE json object with keys as numbers: 1,2,3...
 
@@ -22,6 +26,6 @@
             .
             .
         }}
-
+        DO NOT repeat any post.
         DO NOT return any other unwanted text like: 'Here is the post ...' or 'This social media post showcases...' or 'Feel free to modify or expand on this post...'.
         

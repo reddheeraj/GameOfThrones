@@ -1,8 +1,7 @@
 import os
+import json
 from Agents.Person import Person
 from model import request_ollama
-from pathlib import Path
-from string import Template
 from typing import List
 from logger import logger
 from config import PROMPTS_DIR
@@ -111,14 +110,18 @@ class Citizen(Person):
         prompt = self._load_prompt(prompt_template).substitute(
             personality=self.personality,
             publicRecord=self.getPublicRecords(politicians),
-            posts="\n\n".join(search_results)
+            posts="\n\n".join(search_results),
+            memories=self.recall()
         )
 
         logger.debug(f"Generated Decision Prompt: {prompt}")
 
         # Use LLM to make a decision
         try:
-            response = request_ollama(prompt).strip()
+            resObj = request_ollama(prompt).strip()
+            resObj = json.loads(resObj.strip("```json").strip("```"))
+            # print("RESOBJ: ", resObj)
+            response, because = resObj["politician"], resObj["because"]
             logger.info(f"{self.name} decided to vote for: {response}")
         except Exception as e:
             logger.error(f"Failed to get decision from LLM: {e}")
@@ -129,7 +132,11 @@ class Citizen(Person):
         if response in politician_names:
             logger.info(f"{self.name} voted for {response}")
             self.vote_decision = response
+            self.remember_instance({"vote": response, "because": because})
+            logger.info(f"CITIZEN: {self.name} voted for {response} because {because}")
             return response
         else:
             logger.info(f"{self.name} did not vote for any politician.")
+            self.remember_instance({"vote": "No Vote", "because": because})
+            logger.info(f"CITIZEN: {self.name} chose to not vote because {because}")
             return "No Vote"

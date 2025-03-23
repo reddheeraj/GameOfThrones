@@ -43,3 +43,6 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Failed to retrieve documents: {e}")
             return []
+    
+    def get_content_of_person(self, person):
+        return [item['content'] for item in self.collection.get(where={"name": person})['metadatas']]
