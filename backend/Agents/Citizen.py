@@ -3,6 +3,7 @@ import json
 from Agents.Person import Person
 from model import request_ollama
 from typing import List
+import time
 from logger import logger
 from config import PROMPTS_DIR
 from Database.VectorStore import VectorStore
@@ -123,6 +124,7 @@ class Citizen(Person):
             # print("RESOBJ: ", resObj)
             response, because = resObj["politician"], resObj["because"]
             logger.info(f"{self.name} decided to vote for: {response}")
+            time.sleep(2)
         except Exception as e:
             logger.error(f"Failed to get decision from LLM: {e}")
             return "No Vote"

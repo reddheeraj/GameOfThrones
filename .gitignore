@@ -4,3 +4,4 @@ Test.*
 Test/
 posts*
 logs
+frontend/node_modules/*
