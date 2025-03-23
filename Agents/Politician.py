@@ -60,11 +60,16 @@ class Politician(Person):
         )
         response = request_ollama(prompt)
         print("RESPONSE: ", response)
-        queries = eval(response)  # Convert string response into list
+        # queries = eval(response)  # Convert string response into list
+        queries = self.extract_code_blocks(response)
         return self.searchCurrectAffairs(queries)
         # except Exception as e:
         #     logger.error(f"Failed to generate queries from public records: {e}")
         #     return {}
+
+    def extract_code_blocks(self, text: str) -> list:
+        code_blocks = re.findall(r"```(.*?)```", text, re.DOTALL)
+        return code_blocks
 
     def summarize(self, text: str) -> str:
         """
@@ -173,16 +178,16 @@ class Politician(Person):
         """
         Extract JSON content from the model response.
         """
-        try:
-            json_pattern = re.compile(r'\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}', re.DOTALL)
-            json_match = json_pattern.search(response)
-            if json_match:
-                json_str = json_match.group(0).strip()
-                return json.loads(json_str)
-            logger.warning("No valid JSON found in response.")
-        except Exception as e:
-            logger.error(f"Failed to extract JSON: {e}")
-        return {}
+        # try:
+        json_pattern = re.compile(r'\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}', re.DOTALL)
+        json_match = json_pattern.search(response)
+        if json_match:
+            json_str = json_match.group(0).strip()
+            return json.loads(json_str)
+        logger.warning("No valid JSON found in response.")
+        # except Exception as e:
+        #     logger.error(f"Failed to extract JSON: {e}")
+        # return {}
 
     def _save_posts(self, posts: Dict[str, str]) -> None:
         """

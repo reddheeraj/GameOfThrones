@@ -54,13 +54,12 @@ class Citizen(Person):
             logger.error("No public records found from politicians.")
             return []
     
-        logger.debug(f"Public records: {publicRecords}")
+        logger.info(f"Public records: {publicRecords}")
 
-        # Load search post prompt
-        prompt_template = os.path.join(PROMPTS_DIR, 'searchPost_prompt.txt')
+        prompt_path = os.path.join(PROMPTS_DIR, 'searchPost_prompt.txt')
         
         # Create the search prompt
-        prompt = Template(prompt_template).substitute(
+        prompt = self._load_prompt(prompt_path).substitute(
             personality=self.personality,
             publicRecords="\n".join(publicRecords)
         )
@@ -77,6 +76,8 @@ class Citizen(Person):
         # Search vector store using the generated query
         try:
             results = vectorStore.queryStore(response, k)
+            results = results['documents'][0]
+            # print("RESULTS: ", results)
             logger.info(f"Retrieved {len(results)} results from vector store.")
             return results
         except Exception as e:
@@ -109,7 +110,7 @@ class Citizen(Person):
 
         prompt = self._load_prompt(prompt_template).substitute(
             personality=self.personality,
-            publicRecord=self.publicRecord,
+            publicRecord=self.getPublicRecords(politicians),
             posts="\n\n".join(search_results)
         )
 
