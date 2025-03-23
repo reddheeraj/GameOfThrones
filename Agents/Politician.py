@@ -1,9 +1,7 @@
 import json
 from logger import logger
-import os
 import re
 from datetime import datetime
-from string import Template
 from typing import List, Dict, Any
 
 import requests
@@ -20,6 +18,19 @@ class Politician(Person):
     def __init__(self, name: str, personality: str, party: str, public_record: str):
         super().__init__(name, personality, public_record)
         self.party = party
+    
+    def getMemory(self) -> None:
+        """
+        Get memory from the vector store.
+        """
+        logger.info(f"Getting memory for {self.name}...")
+        # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
+        return VectorStore('Test').get_content_of_person(self.name)
+        # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
     
     def getPublicRecords(self, citizens: List[Person]) -> List[str]:
         """
@@ -142,7 +153,7 @@ class Politician(Person):
         Call the getPublicRecords method to get the public records of all citizens and create a post.
         """
         logger.info(f"Creating post for {self.name}...")
-        
+        prevPosts = self.getMemory()
         publicRecords = self.getPublicRecords(citizens)
         currentAffairs = self.getCurrentAffairs(publicRecords)
         summarized_affairs = self.scrape(currentAffairs)
@@ -158,6 +169,7 @@ class Politician(Person):
             personality=self.personality,
             publicRecords_str=publicRecords_str,
             summarized_affairs_str=summarized_affairs_str,
+            prevPosts=prevPosts,
             num=num
         )
 

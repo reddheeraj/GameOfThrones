@@ -1,10 +1,21 @@
 Citizen Personality: ${personality}
 Public Record: ${publicRecord}
 
-Based on the following posts, decide which politician aligns most closely with the citizen's personality and values:
+You are given the previous voting memories of the citizen (which defines why they voted for a particular politician in the past or why they did not vote): 
+
+${memories}
+
+Based on the previous memories and the following posts, decide which politician aligns most closely with the citizen's personality and values:
 
 ${posts}
 
-Respond with the exact name of the politician. Choose one of the politician, but worst case go for output as "No Vote" if none are suitable.
-JUST RESPOND WITH THE NAME OF THE POLITICIAN. DO NOT ADD ANYTHING ELSE TO YOUR RESPONSE.
-EXAMPLE RESPONSE: Politician Name
+
+Respond with the exact name of the politician, and why they voted for it. Choose one of the politician, but worst case go for output as "No Vote" if none are suitable.
+JUST RESPOND WITH THE NAME OF THE POLITICIAN and why they voted for it in JSON Format. DO NOT ADD ANYTHING ELSE TO YOUR RESPONSE.
+EXAMPLE RESPONSE: 
+```json
+{
+    "politician": "John Doe",
+    "because": "He is a good person"
+}
+```
