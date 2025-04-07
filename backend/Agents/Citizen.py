@@ -1,9 +1,11 @@
 import os
 import json
+import random
+import time
+from typing import List
+
 from Agents.Person import Person
 from model import request_ollama
-from typing import List
-import time
 from logger import logger
 from config import PROMPTS_DIR
 from Database.VectorStore import VectorStore
@@ -20,7 +22,35 @@ class Citizen(Person):
         """
         super().__init__(name, personality, publicRecord)
         self.vote_decision = None
-    
+
+    def request_with_backoff(self, prompt, max_retries=5, base_delay=2):
+        """
+        Retry wrapper for request_ollama with exponential backoff.
+
+        Args:
+            prompt (str): The prompt to send to the LLM.
+            max_retries (int): Maximum number of retry attempts.
+            base_delay (int): Base delay for exponential backoff.
+
+        Returns:
+            str: LLM response.
+
+        Raises:
+            Exception: If all retry attempts fail.
+        """
+        for attempt in range(max_retries):
+            try:
+                return request_ollama(prompt)
+            except Exception as e:
+                if "Too Many Requests" in str(e) or "429" in str(e):
+                    wait_time = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning(f"Rate limit hit. Retrying in {wait_time:.2f}s (Attempt {attempt + 1})...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Request failed with error: {e}")
+                    break
+        raise Exception("Exceeded max retries due to rate limiting.")    
+
     def getPublicRecords(self, politicians: List[Person]) -> List[str]:
         """
         Get public records from politicians.
@@ -65,9 +95,9 @@ class Citizen(Person):
         )
         logger.debug(f"Generated Prompt: {prompt}")
 
-        # Generate query using LLM
+        # Generate query using LLM with backoff
         try:
-            response = request_ollama(prompt)
+            response = self.request_with_backoff(prompt)
             logger.info(f"LLM Response: {response}")
         except Exception as e:
             logger.error(f"Failed to get LLM response: {e}")
@@ -117,9 +147,9 @@ class Citizen(Person):
 
         logger.debug(f"Generated Decision Prompt: {prompt}")
 
-        # Use LLM to make a decision
+        # Use LLM with backoff to make a decision
         try:
-            resObj = request_ollama(prompt).strip()
+            resObj = self.request_with_backoff(prompt).strip()
             resObj = json.loads(resObj.strip("```json").strip("```"))
             # print("RESOBJ: ", resObj)
             response, because = resObj["politician"], resObj["because"]
