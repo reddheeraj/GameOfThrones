@@ -11,20 +11,28 @@ Social media is reshaping modern politics, and InstaPolitics was born to explore
 ---
 
 ## 🌍 **What It Does**  
-InstaPolitics is a full-stack web app that simulates the complex dynamics of political campaigns and voter behavior.  
+InstaPolitics is a full-stack web app that simulates the complex dynamics of political campaigns and voter behavior. Define personalities for your agents and see them play it out.
 
-- 🏛️ **Politician Agents**: Define unique personalities for political figures, who will post on a custom-built social media platform.  
-- 👥 **Citizen Agents**: Voters react to posts based on their personalities and biases.  
-- 🎯 **Influence and Decision-Making**: Watch how posts influence voters and drive decisions at the ballot box.  
-- 📊 **Real-Time Simulation**: See political strategies unfold and voter behavior evolve in real-time.  
+- 🏛️ **Politician Agents**: Define unique personalities for political figures, who will post on a **Custom-Built Social Media Platform**.  
+- 👥 **Citizen Agents**: Voters react to posts based on their personalities and biases, or decide to not vote. Each move is stored in their own memory.
+- 🎯 **Influence and Decision-Making**: Watch how posts influence voters and drive decisions at the ballot box.
+- 📊 **Real-Time Simulation**: See political strategies unfold and voter behavior evolve in real-time.
 - ✨ **Goal**: To understand how social media shapes modern political influence through direct interaction and dynamic feedback.  
 
 Final look:
+---
 ![image](https://github.com/user-attachments/assets/efe7ea2c-0998-4076-bb20-07968904e09c)
 
 
 Prototype look:
+---
 ![image](https://github.com/user-attachments/assets/597bf0ba-fd3b-4d33-8fd6-e04f89f06305)
+
+
+Shows why a particular politician won the elections (based on people's memories):
+---
+![image](https://github.com/user-attachments/assets/a6646755-5b27-4303-aed1-28042430a87c)
+
 
 ---
 
@@ -41,7 +49,7 @@ Here's the full-stack architecture breakdown:
 | **Backend** | Flask, Python | State management, API handling |
 | **Agent Framework** | Customer Framework over Langchain | Decision-making and content generation for agents |
 | **Search** | ChromaDB, BM25 | Vector search and ranking for relevance |
-| **LLM Support** | Gemini, Ollama, Groq | Generating realistic political content |
+| **LLM Support** | Groq, Gemini, Ollama | Generating realistic political content |
 | **Real-Time Communication** | Socket.IO | Live updates and interactions |
 | **Data Storage** | ChromaDB | Storing embeddings for agent memory and search |
 | **Ranking** | BM25 | Ranking social media posts based on influence |
